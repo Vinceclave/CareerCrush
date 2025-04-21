@@ -128,7 +128,7 @@ ${job.skills.map(skill => `- ${skill}`).join('\n')}
 
   private async analyzeResume(resume: Resume, jobType: string): Promise<void> {
     try {
-      console.log(`Processing resume ID: ${resume.id}`);
+      console.log(`Analyzing resume ID: ${resume.id} for ${jobCategories[jobType].title}`);
       
       const jobDescription = this.generateJobDescription(jobType);
       const score: AIResumeScore = await ResumeModel.analyzeResume(resume.id, jobDescription);
@@ -143,13 +143,13 @@ ${job.skills.map(skill => `- ${skill}`).join('\n')}
 
   private async checkAndAnalyzeNewResumes(): Promise<void> {
     try {
-      // Get all resumes
-      const resumes: Resume[] = await ResumeModel.findByEmployeeId(1); // Using a dummy employee ID for testing
+      // Get all resumes that haven't been analyzed yet
+      const resumes: Resume[] = await ResumeModel.findUnanalyzedResumes();
       
       if (resumes.length > 0) {
-        console.log(`Found ${resumes.length} resumes to process`);
+        console.log(`Found ${resumes.length} new resumes to analyze`);
         
-        // Process each resume against all job categories
+        // Analyze each resume against all job categories
         for (const resume of resumes) {
           for (const jobType of Object.keys(jobCategories)) {
             await this.analyzeResume(resume, jobType);
@@ -157,51 +157,7 @@ ${job.skills.map(skill => `- ${skill}`).join('\n')}
         }
       }
     } catch (error) {
-      console.error('Error in resume processing service:', error);
-    }
-  }
-
-  // New method to get all candidates without filtering
-  async getAllCandidates(): Promise<Resume[]> {
-    try {
-      return await ResumeModel.findByEmployeeId(1); // Using a dummy employee ID for testing
-    } catch (error) {
-      console.error('Error fetching all candidates:', error);
-      return [];
-    }
-  }
-
-  // New method to get filtered candidates by score
-  async getFilteredCandidates(minScore: number = 0.3): Promise<Resume[]> {
-    try {
-      const allResumes = await ResumeModel.findByEmployeeId(1); // Using a dummy employee ID for testing
-      const filteredResumes: Resume[] = [];
-      
-      for (const resume of allResumes) {
-        const score = await ResumeModel.getResumeScore(resume.id);
-        if (score) {
-          // Include candidates that meet the minimum score or have relevant keywords
-          if (score.score >= minScore || score.analysis.toLowerCase().includes('skill') || 
-              score.analysis.toLowerCase().includes('experience')) {
-            filteredResumes.push(resume);
-          }
-        } else {
-          // Include candidates without scores to ensure we don't miss any
-          filteredResumes.push(resume);
-        }
-      }
-      
-      // Sort by score if available
-      filteredResumes.sort((a, b) => {
-        const scoreA = a.score || 0;
-        const scoreB = b.score || 0;
-        return scoreB - scoreA;
-      });
-      
-      return filteredResumes;
-    } catch (error) {
-      console.error('Error fetching filtered candidates:', error);
-      return [];
+      console.error('Error in auto-analysis service:', error);
     }
   }
 

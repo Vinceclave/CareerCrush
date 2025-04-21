@@ -63,11 +63,11 @@ export default function LandingPage() {
               <p className="mt-2 text-gray-500">
                 Get matched with jobs that fit your skills and preferences. Let the opportunities come to you.
               </p>
-            </div>
+            </div>  
             <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h3 className="text-lg font-medium text-gray-900">Track Applications</h3>
+              <h3 className="text-lg font-medium text-gray-900">Hire Talent Fast</h3>
               <p className="mt-2 text-gray-500">
-                Keep track of all your applications in one place. Never miss an opportunity again.
+                Hire talent fast with our streamlined hiring process. Get the right candidate in no time. 
               </p>
             </div>
           </div>

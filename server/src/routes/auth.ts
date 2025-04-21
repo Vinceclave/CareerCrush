@@ -31,16 +31,18 @@ router.post('/register', async (req, res) => {
     const payload = { id: userId, email, role };
     const secret = process.env.JWT_SECRET || 'fallback-secret-key';
     const options: jwt.SignOptions = { 
-      expiresIn: '24h' // Using a valid string format for expiresIn
+      expiresIn: '24h'
     };
     const token = jwt.sign(payload, secret, options);
 
     res.status(201).json({
       message: 'User registered successfully',
       token,
-      id: userId,
-      email,
-      role
+      user: {
+        id: userId,
+        email,
+        role
+      }
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -74,16 +76,18 @@ router.post('/login', async (req, res) => {
     const payload = { id: user.id, email: user.email, role: user.role };
     const secret = process.env.JWT_SECRET || 'fallback-secret-key';
     const options: jwt.SignOptions = { 
-      expiresIn: '24h' // Using a valid string format for expiresIn
+      expiresIn: '24h'
     };
     const token = jwt.sign(payload, secret, options);
 
     res.json({
       message: 'Login successful',
       token,
-      id: user.id,
-      email: user.email,
-      role: user.role
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      }
     });
   } catch (error) {
     console.error('Login error:', error);

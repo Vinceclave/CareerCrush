@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:3000/api';
+import api from './api';
 
 export interface LoginCredentials {
   email: string;
@@ -21,49 +19,62 @@ export interface User {
 
 class AuthService {
   async login(credentials: LoginCredentials) {
-    const response = await axios.post(`${API_URL}/auth/login`, credentials);
-    if (response.data.token) {
-      localStorage.setItem('user', JSON.stringify(response.data));
+    try {
+      const response = await api.post('/auth/login', credentials);
+      if (response.data.token && response.data.user) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Login failed');
     }
-    return response.data;
   }
 
   async register(credentials: RegisterCredentials) {
-    const response = await axios.post(`${API_URL}/auth/register`, credentials);
-    if (response.data.token) {
-      localStorage.setItem('user', JSON.stringify(response.data));
+    try {
+      const response = await api.post('/auth/register', credentials);
+      if (response.data.token && response.data.user) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Registration failed');
     }
-    return response.data;
   }
 
   logout() {
+    localStorage.removeItem('token');
     localStorage.removeItem('user');
   }
 
   getCurrentUser(): User | null {
     const userStr = localStorage.getItem('user');
     if (userStr) {
-      const user = JSON.parse(userStr);
-      return {
-        id: user.id,
-        email: user.email,
-        role: user.role
-      };
+      try {
+        const user = JSON.parse(userStr);
+        return {
+          id: user.id,
+          email: user.email,
+          role: user.role
+        };
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        return null;
+      }
     }
     return null;
   }
 
   getToken(): string | null {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      return user.token;
-    }
-    return null;
+    return localStorage.getItem('token');
   }
 
   isAuthenticated(): boolean {
-    return this.getCurrentUser() !== null;
+    return !!this.getToken();
   }
 
   getRole(): 'employee' | 'employer' | null {
@@ -73,8 +84,9 @@ class AuthService {
 
   getDashboardPath(): string {
     const role = this.getRole();
-    return role === 'employee' ? '/employee-dashboard' : '/employer-dashboard';
+    return role ? `/${role}/dashboard` : '/login';
   }
 }
 
+// Create and export a single instance of AuthService
 export const authService = new AuthService(); 

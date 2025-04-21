@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import { RowDataPacket } from 'mysql2';
 
 dotenv.config();
 
@@ -47,18 +48,32 @@ const createTables = async () => {
     // Profiles table
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS profiles (
-        user_id INT PRIMARY KEY,
-        name VARCHAR(255),
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        first_name VARCHAR(255) NOT NULL,
+        last_name VARCHAR(255) NOT NULL,
+        phone VARCHAR(20),
+        avatar_url VARCHAR(255),
+        title VARCHAR(255),
         skills TEXT,
-        experience TEXT,
+        experience_years INT,
         education TEXT,
-        desired_job_type VARCHAR(255),
+        resume_url VARCHAR(255),
+        linkedin_url VARCHAR(255),
+        github_url VARCHAR(255),
+        bio TEXT,
+        preferred_location VARCHAR(255),
+        preferred_job_type ENUM('full-time', 'part-time', 'contract', 'internship'),
+        preferred_work_environment ENUM('remote', 'hybrid', 'on-site'),
         company_name VARCHAR(255),
-        job_title VARCHAR(255),
-        job_description TEXT,
+        company_website VARCHAR(255),
+        industry VARCHAR(255),
+        company_size VARCHAR(50),
+        company_description TEXT,
+        company_logo_url VARCHAR(255),
         location VARCHAR(255),
-        resume_score INT DEFAULT 0,
-        resume_file_url VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);

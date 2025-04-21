@@ -1,62 +1,117 @@
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { authService } from './services/authService';
+import { useAuth } from './context/AuthContext';
 import LandingPage from './components/LandingPage';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
-import EmployeeDashboard from './components/dashboard/EmployeeDashboard';
-import EmployerDashboard from './components/dashboard/EmployerDashboard';
+import EmployeeProfileForm from './components/profile/EmployeeProfileForm';
+import EmployerProfileForm from './components/profile/EmployerProfileForm';
+import EmployeeLayout from './components/layout/EmployeeLayout';
+import EmployerLayout from './components/layout/EmployerLayout';
+import ErrorBoundary from './components/common/ErrorBoundary';
+import LoadingSpinner from './components/common/LoadingSpinner';
 
-// Role-based Route component
-const RoleBasedRoute = ({ children, allowedRoles }: { 
-  children: React.ReactNode; 
-  allowedRoles: ('employee' | 'employer')[] 
-}) => {
-  const userRole = authService.getRole();
-  
-  if (!authService.isAuthenticated()) {
+const PrivateRoute: React.FC<{ 
+  children: React.ReactNode;
+  role?: 'employee' | 'employer';
+}> = ({ children, role }) => {
+  const { user, isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!userRole || !allowedRoles.includes(userRole)) {
-    // Redirect to appropriate dashboard based on role
-    return <Navigate to={authService.getDashboardPath()} replace />;
+  if (role && user?.role !== role) {
+    return <Navigate to={`/${user?.role}/dashboard`} replace />;
   }
 
   return <>{children}</>;
 };
 
-function App() {
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, user } = useAuth();
+
+  if (isAuthenticated && user) {
+    return <Navigate to={`/${user.role}/dashboard`} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const App: React.FC = () => {
   return (
-    <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+    <ErrorBoundary>
+      <div className="min-h-screen bg-white">
+        <Router>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<LandingPage />} />
+              <Route 
+                path="/login" 
+                element={
+                  <PublicRoute>
+                    <Login />
+                  </PublicRoute>
+                } 
+              />
+              <Route 
+                path="/register" 
+                element={
+                  <PublicRoute>
+                    <Register />
+                  </PublicRoute>
+                } 
+              />
 
-        {/* Protected Role-based Routes */}
-        <Route
-          path="/employee-dashboard"
-          element={
-            <RoleBasedRoute allowedRoles={['employee']}>
-              <EmployeeDashboard />
-            </RoleBasedRoute>
-          }
-        />
-        <Route
-          path="/employer-dashboard"
-          element={
-            <RoleBasedRoute allowedRoles={['employer']}>
-              <EmployerDashboard />
-            </RoleBasedRoute>
-          }
-        />
+              {/* Employee Routes */}
+              <Route
+                path="/employee/*"
+                element={
+                  <PrivateRoute role="employee">
+                    <EmployeeLayout>
+                      <div className="container mx-auto px-4 py-8">
+                        <Routes>
+                          <Route path="dashboard" element={<div className="bg-white rounded-lg shadow p-6">Employee Dashboard</div>} />
+                          <Route path="profile" element={<EmployeeProfileForm />} />
+                          <Route path="jobs" element={<div className="bg-white rounded-lg shadow p-6">Jobs</div>} />
+                          <Route path="matches" element={<div className="bg-white rounded-lg shadow p-6">Matches</div>} />
+                          <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
+                        </Routes>
+                      </div>
+                    </EmployeeLayout>
+                  </PrivateRoute>
+                }
+              />
 
-        {/* Catch all route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+              {/* Employer Routes */}
+              <Route
+                path="/employer/*"
+                element={
+                  <PrivateRoute role="employer">
+                    <EmployerLayout>
+                      <div className="container mx-auto px-4 py-8">
+                        <Routes>
+                          <Route path="dashboard" element={<div className="bg-white rounded-lg shadow p-6">Employer Dashboard</div>} />
+                          <Route path="profile" element={<EmployerProfileForm />} />
+                          <Route path="jobs" element={<div className="bg-white rounded-lg shadow p-6">Jobs</div>} />
+                          <Route path="candidates" element={<div className="bg-white rounded-lg shadow p-6">Candidates</div>} />
+                          <Route path="*" element={<Navigate to="/employer/dashboard" replace />} />
+                        </Routes>
+                      </div>
+                    </EmployerLayout>
+                  </PrivateRoute>
+                }
+              />
+
+              {/* Catch all route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </Router>
+      </div>
+    </ErrorBoundary>
   );
-}
+};
 
 export default App;

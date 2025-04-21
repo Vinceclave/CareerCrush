@@ -5,6 +5,8 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { initializeDatabase } from './config/database';
 import authRoutes from './routes/auth';
+import profileRoutes from './routes/profile';
+import { errorHandler } from './middleware/errorHandler';
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +36,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -44,19 +47,29 @@ app.get('/health', (req, res) => {
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
 
+  // Handle chat messages
+  socket.on('chat:message', (data) => {
+    io.emit('chat:message', {
+      ...data,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Handle match notifications
+  socket.on('match:new', (data) => {
+    io.emit('match:new', {
+      ...data,
+      timestamp: new Date().toISOString()
+    });
+  });
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
   });
 });
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: 'Something went wrong!',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
+app.use(errorHandler);
 
 // Start server
 const startServer = async () => {
@@ -66,7 +79,7 @@ const startServer = async () => {
 
     const PORT = process.env.PORT || 3000;
     httpServer.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+      console.log(`Server running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV}`);
       console.log(`CORS Origin: ${corsOptions.origin}`);
     });

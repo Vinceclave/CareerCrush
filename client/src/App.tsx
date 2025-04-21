@@ -5,6 +5,7 @@ import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import EmployeeDashboard from './components/dashboard/EmployeeDashboard';
 import EmployerDashboard from './components/dashboard/EmployerDashboard';
+import CandidateSwipe from './components/swipe/CandidateSwipe';
 
 // Role-based Route component
 const RoleBasedRoute = ({ children, allowedRoles }: { 
@@ -48,6 +49,14 @@ function App() {
           element={
             <RoleBasedRoute allowedRoles={['employer']}>
               <EmployerDashboard />
+            </RoleBasedRoute>
+          }
+        />
+        <Route
+          path="/employer/candidates"
+          element={
+            <RoleBasedRoute allowedRoles={['employer']}>
+              <CandidateSwipe />
             </RoleBasedRoute>
           }
         />

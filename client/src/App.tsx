@@ -10,7 +10,11 @@ import EmployeeLayout from './components/layout/EmployeeLayout';
 import EmployerLayout from './components/layout/EmployerLayout';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
-import { EmployerDashboard } from './pages/EmployerDashboard';
+import EmployeeDashboard from './components/dashboard/EmployeeDashboard';
+import EmployerDashboard from './components/dashboard/EmployerDashboard';
+import EmployeeMatches from './components/matches/EmployeeMatches';
+import { CandidateSwiper } from './components/CandidateSwiper';
+import { Toaster } from 'react-hot-toast';
 
 const PrivateRoute: React.FC<{ 
   children: React.ReactNode;
@@ -43,6 +47,7 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-white">
+        <Toaster position="top-right" />
         <Router>
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
@@ -73,10 +78,10 @@ const App: React.FC = () => {
                     <EmployeeLayout>
                       <div className="container mx-auto px-4 py-8">
                         <Routes>
-                          <Route path="dashboard" element={<div className="bg-white rounded-lg shadow p-6">Employee Dashboard</div>} />
+                          <Route path="dashboard" element={<EmployeeDashboard />} />
                           <Route path="profile" element={<EmployeeProfileForm />} />
                           <Route path="jobs" element={<div className="bg-white rounded-lg shadow p-6">Jobs</div>} />
-                          <Route path="matches" element={<div className="bg-white rounded-lg shadow p-6">Matches</div>} />
+                          <Route path="matches" element={<EmployeeMatches />} />
                           <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
                         </Routes>
                       </div>
@@ -96,7 +101,7 @@ const App: React.FC = () => {
                           <Route path="dashboard" element={<EmployerDashboard />} />
                           <Route path="profile" element={<EmployerProfileForm />} />
                           <Route path="jobs" element={<div className="bg-white rounded-lg shadow p-6">Jobs</div>} />
-                          <Route path="candidates" element={<div className="bg-white rounded-lg shadow p-6">Candidates</div>} />
+                          <Route path="candidates" element={<CandidateSwiper />} />
                           <Route path="*" element={<Navigate to="/employer/dashboard" replace />} />
                         </Routes>
                       </div>

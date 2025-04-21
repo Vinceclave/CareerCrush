@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../../services/authService';
 
 interface User {
@@ -26,6 +26,29 @@ export default function EmployerDashboard() {
     };
 
     checkAuth();
+
+    // Intersection Observer for scroll animations
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('show');
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    // Observe all elements with scroll-reveal class
+    document.querySelectorAll('.scroll-reveal').forEach((el) => {
+      observer.observe(el);
+    });
+
+    return () => {
+      document.querySelectorAll('.scroll-reveal').forEach((el) => {
+        observer.unobserve(el);
+      });
+    };
   }, [navigate]);
 
   return (
@@ -97,6 +120,62 @@ export default function EmployerDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Add CSS styles */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.6s ease-out forwards;
+        }
+        
+        .animation-delay-200 {
+          animation-delay: 0.2s;
+        }
+        
+        .animation-delay-400 {
+          animation-delay: 0.4s;
+        }
+        
+        /* Scroll reveal animations */
+        .scroll-reveal {
+          opacity: 0;
+          transition: all 1s ease-out;
+        }
+        
+        .fadeFromBottom {
+          transform: translateY(50px);
+        }
+        
+        .fadeFromLeft {
+          transform: translateX(-50px);
+        }
+        
+        .fadeFromRight {
+          transform: translateX(50px);
+        }
+        
+        .fadeIn {
+          opacity: 0;
+        }
+        
+        .delay-200 {
+          transition-delay: 0.2s;
+        }
+        
+        .delay-400 {
+          transition-delay: 0.4s;
+        }
+        
+        /* Show element when in viewport */
+        .scroll-reveal.show {
+          opacity: 1;
+          transform: translate(0, 0);
+        }
+      `}</style>
     </div>
   );
 } 

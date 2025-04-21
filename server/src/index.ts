@@ -12,18 +12,23 @@ dotenv.config();
 // Create Express app
 const app = express();
 const httpServer = createServer(app);
+
+// CORS configuration
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'development' 
+    ? ['http://localhost:5173', 'http://localhost:3000']
+    : process.env.CORS_ORIGIN,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.CORS_ORIGIN,
-    methods: ['GET', 'POST']
-  }
+  cors: corsOptions
 });
 
 // Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGIN,
-  credentials: true
-}));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -63,6 +68,7 @@ const startServer = async () => {
     httpServer.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV}`);
+      console.log(`CORS Origin: ${corsOptions.origin}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

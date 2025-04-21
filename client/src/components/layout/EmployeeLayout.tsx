@@ -42,12 +42,6 @@ const EmployeeLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =
                   Profile
                 </Link>
                 <Link
-                  to="/employee/jobs"
-                  className={`${isActive('/employee/jobs')} inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-gray-300 hover:text-gray-700`}
-                >
-                  Jobs
-                </Link>
-                <Link
                   to="/employee/matches"
                   className={`${isActive('/employee/matches')} inline-flex items-center px-1 pt-1 border-b-2 border-transparent hover:border-gray-300 hover:text-gray-700`}
                 >

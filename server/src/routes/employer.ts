@@ -5,6 +5,113 @@ import pool from '../config/database';
 
 const router = Router();
 
+// Dummy data for testing
+const dummyCandidates = [
+  {
+    resume_id: 1,
+    employee_id: 101,
+    employee_name: "John Doe",
+    employee_email: "john.doe@example.com",
+    avatar_url: "https://randomuser.me/api/portraits/men/1.jpg",
+    title: "Senior Software Engineer",
+    skills: ["JavaScript", "React", "Node.js", "TypeScript", "AWS"],
+    experience_years: 5,
+    education: "BS Computer Science, Stanford University",
+    linkedin_url: "https://linkedin.com/in/johndoe",
+    preferred_location: "San Francisco, CA",
+    preferred_job_type: "Full-time",
+    score: 0.95,
+    analysis: "Strong match for senior developer position. Excellent React and Node.js experience.",
+    scored_at: "2024-03-15T10:30:00Z",
+    match_percentage: "95%"
+  },
+  {
+    resume_id: 2,
+    employee_id: 102,
+    employee_name: "Jane Smith",
+    employee_email: "jane.smith@example.com",
+    avatar_url: "https://randomuser.me/api/portraits/women/2.jpg",
+    title: "Data Scientist",
+    skills: ["Python", "Machine Learning", "TensorFlow", "SQL", "Data Analysis"],
+    experience_years: 3,
+    education: "MS Data Science, MIT",
+    linkedin_url: "https://linkedin.com/in/janesmith",
+    preferred_location: "New York, NY",
+    preferred_job_type: "Full-time",
+    score: 0.92,
+    analysis: "Excellent match for data science role. Strong ML background.",
+    scored_at: "2024-03-15T11:15:00Z",
+    match_percentage: "92%"
+  },
+  {
+    resume_id: 3,
+    employee_id: 103,
+    employee_name: "Michael Johnson",
+    employee_email: "michael.johnson@example.com",
+    avatar_url: "https://randomuser.me/api/portraits/men/3.jpg",
+    title: "Product Manager",
+    skills: ["Product Strategy", "Agile", "User Research", "Data Analysis", "Communication"],
+    experience_years: 4,
+    education: "MBA, Harvard Business School",
+    linkedin_url: "https://linkedin.com/in/michaeljohnson",
+    preferred_location: "Seattle, WA",
+    preferred_job_type: "Full-time",
+    score: 0.88,
+    analysis: "Good match for product management role. Strong business background.",
+    scored_at: "2024-03-15T12:00:00Z",
+    match_percentage: "88%"
+  },
+  {
+    resume_id: 4,
+    employee_id: 104,
+    employee_name: "Emily Davis",
+    employee_email: "emily.davis@example.com",
+    avatar_url: "https://randomuser.me/api/portraits/women/4.jpg",
+    title: "UX Designer",
+    skills: ["UI/UX Design", "Figma", "User Research", "Prototyping", "Design Systems"],
+    experience_years: 3,
+    education: "BS Design, Rhode Island School of Design",
+    linkedin_url: "https://linkedin.com/in/emilydavis",
+    preferred_location: "Austin, TX",
+    preferred_job_type: "Full-time",
+    score: 0.85,
+    analysis: "Strong match for UX design position. Excellent portfolio.",
+    scored_at: "2024-03-15T13:30:00Z",
+    match_percentage: "85%"
+  },
+  {
+    resume_id: 5,
+    employee_id: 105,
+    employee_name: "David Wilson",
+    employee_email: "david.wilson@example.com",
+    avatar_url: "https://randomuser.me/api/portraits/men/5.jpg",
+    title: "DevOps Engineer",
+    skills: ["Kubernetes", "Docker", "AWS", "CI/CD", "Terraform"],
+    experience_years: 4,
+    education: "BS Computer Engineering, Georgia Tech",
+    linkedin_url: "https://linkedin.com/in/davidwilson",
+    preferred_location: "Remote",
+    preferred_job_type: "Full-time",
+    score: 0.82,
+    analysis: "Good match for DevOps role. Strong infrastructure experience.",
+    scored_at: "2024-03-15T14:45:00Z",
+    match_percentage: "82%"
+  }
+];
+
+const dummySkills = [
+  { keyword: "JavaScript", frequency: 42 },
+  { keyword: "React", frequency: 38 },
+  { keyword: "Python", frequency: 35 },
+  { keyword: "Node.js", frequency: 32 },
+  { keyword: "AWS", frequency: 28 },
+  { keyword: "TypeScript", frequency: 25 },
+  { keyword: "Machine Learning", frequency: 22 },
+  { keyword: "SQL", frequency: 20 },
+  { keyword: "Docker", frequency: 18 },
+  { keyword: "Kubernetes", frequency: 15 }
+];
+
 // Search for candidates based on resume scores
 router.get('/search-candidates', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -20,119 +127,22 @@ router.get('/search-candidates', authenticateToken, async (req: Request, res: Re
     const resultLimit = parseInt(limit as string);
     const resultOffset = parseInt(offset as string);
 
-    console.log('Search parameters:', { minScore, job_type, resultLimit, resultOffset });
-
-    // Validate data existence
-    const [validation] = await pool.execute(`
-      SELECT 
-        COUNT(DISTINCT r.id) as total_resumes,
-        COUNT(DISTINCT u.id) as total_users,
-        COUNT(DISTINCT p.id) as total_profiles,
-        COUNT(DISTINCT ars.id) as total_scores
-      FROM resumes r
-      LEFT JOIN users u ON r.employee_id = u.id
-      LEFT JOIN profiles p ON u.id = p.user_id
-      LEFT JOIN ai_resume_scores ars ON r.id = ars.resume_id
-    `);
-
-    const validationData = (validation as any[])[0];
-    console.log('Data validation:', validationData);
-
-    if (validationData.total_resumes === 0) {
-      return res.status(404).json({ 
-        error: 'No resumes found',
-        details: 'No resumes exist in the database'
-      });
-    }
-
-    if (validationData.total_scores === 0) {
-      return res.status(404).json({ 
-        error: 'No resume scores found',
-        details: 'No AI resume scores exist in the database'
-      });
-    }
-
-    // Get top matching resumes with profile information
-    const [rows] = await pool.execute(`
-      SELECT 
-        r.id as resume_id,
-        r.employee_id,
-        r.file_url,
-        ars.score,
-        ars.analysis,
-        ars.scored_at,
-        p.first_name,
-        p.last_name,
-        p.avatar_url,
-        p.title,
-        p.skills,
-        p.experience_years,
-        p.education,
-        p.linkedin_url,
-        p.preferred_location,
-        p.preferred_job_type,
-        u.email as employee_email,
-        u.role as user_role
-      FROM resumes r
-      INNER JOIN users u ON r.employee_id = u.id
-      INNER JOIN profiles p ON u.id = p.user_id
-      INNER JOIN ai_resume_scores ars ON r.id = ars.resume_id
-      WHERE ars.score >= ?
-        AND u.role = 'employee'  -- Ensure we only get employee profiles
-      ORDER BY ars.score DESC
-      LIMIT ? OFFSET ?
-    `, [minScore, resultLimit, resultOffset]);
-
-    console.log('Found candidates:', (rows as any[]).length);
-
-    // Format the response
-    const candidates = (rows as any[]).map(row => ({
-      resume_id: row.resume_id,
-      employee_id: row.employee_id,
-      employee_name: `${row.first_name} ${row.last_name}`,
-      employee_email: row.employee_email,
-      avatar_url: row.avatar_url,
-      title: row.title,
-      skills: JSON.parse(row.skills || '[]'),
-      experience_years: row.experience_years,
-      education: row.education,
-      linkedin_url: row.linkedin_url,
-      preferred_location: row.preferred_location,
-      preferred_job_type: row.preferred_job_type,
-      score: row.score,
-      analysis: row.analysis,
-      scored_at: row.scored_at,
-      match_percentage: (row.score * 100).toFixed(2) + '%'
-    }));
-
-    // Get total count for pagination
-    const [totalRows] = await pool.execute(`
-      SELECT COUNT(*) as total
-      FROM resumes r
-      INNER JOIN users u ON r.employee_id = u.id
-      INNER JOIN profiles p ON u.id = p.user_id
-      INNER JOIN ai_resume_scores ars ON r.id = ars.resume_id
-      WHERE ars.score >= ?
-        AND u.role = 'employee'
-    `, [minScore]);
-
-    const total = (totalRows as any[])[0].total;
+    // Filter candidates based on minimum score
+    const filteredCandidates = dummyCandidates.filter(candidate => candidate.score >= minScore);
+    
+    // Apply pagination
+    const paginatedCandidates = filteredCandidates.slice(resultOffset, resultOffset + resultLimit);
 
     res.json({
-      candidates,
+      candidates: paginatedCandidates,
       pagination: {
-        total,
+        total: filteredCandidates.length,
         limit: resultLimit,
         offset: resultOffset
       }
     });
   } catch (error: any) {
     console.error('Error searching candidates:', error);
-    console.error('Error details:', {
-      message: error.message,
-      sql: error.sql,
-      code: error.code
-    });
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
@@ -166,34 +176,12 @@ router.get('/resume/:id/analysis', authenticateToken, async (req: Request, res: 
 // Get top skills from resumes
 router.get('/top-skills', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const { limit = 20 } = req.query;
+    const { limit = 10 } = req.query;
     const resultLimit = parseInt(limit as string);
 
-    // Get top skills from resume analyses
-    const [rows] = await pool.execute(`
-      SELECT 
-        keyword,
-        COUNT(*) as frequency
-      FROM (
-        SELECT 
-          SUBSTRING_INDEX(SUBSTRING_INDEX(analysis, 'Matching Keywords: ', -1), ',', numbers.n) as keyword
-        FROM ai_resume_scores
-        JOIN (
-          SELECT a.N + b.N * 10 + 1 n
-          FROM (SELECT 0 AS N UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) a,
-               (SELECT 0 AS N UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) b
-          ORDER BY n
-        ) numbers ON CHAR_LENGTH(analysis) - CHAR_LENGTH(REPLACE(analysis, ',', '')) >= numbers.n - 1
-        WHERE analysis LIKE '%Matching Keywords:%'
-      ) keywords
-      WHERE keyword != ''
-      GROUP BY keyword
-      ORDER BY frequency DESC
-      LIMIT ?
-    `, [resultLimit]);
-
+    // Return dummy skills data
     res.json({
-      skills: rows
+      skills: dummySkills.slice(0, resultLimit)
     });
   } catch (error: any) {
     console.error('Error getting top skills:', error);

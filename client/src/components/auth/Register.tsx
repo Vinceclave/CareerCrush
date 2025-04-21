@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authService, RegisterCredentials } from '../../services/authService';
+import axios, { AxiosError } from 'axios';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -19,9 +20,14 @@ export default function Register() {
 
     try {
       await authService.register(credentials);
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed. Please try again.');
+      navigate(authService.getDashboardPath());
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const error = err as AxiosError<{ error: string }>;
+        setError(error.response?.data?.error || 'Registration failed. Please try again.');
+      } else {
+        setError('Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

@@ -3,22 +3,25 @@ import { authService } from './services/authService';
 import LandingPage from './components/LandingPage';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
-import Dashboard from './components/Dashboard';
-import DashboardLayout from './components/layout/DashboardLayout';
+import EmployeeDashboard from './components/dashboard/EmployeeDashboard';
+import EmployerDashboard from './components/dashboard/EmployerDashboard';
 
-// Protected Route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+// Role-based Route component
+const RoleBasedRoute = ({ children, allowedRoles }: { 
+  children: React.ReactNode; 
+  allowedRoles: ('employee' | 'employer')[] 
+}) => {
+  const userRole = authService.getRole();
+  
   if (!authService.isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
-  return <DashboardLayout>{children}</DashboardLayout>;
-};
 
-// Public Route component
-const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  if (authService.isAuthenticated()) {
-    return <Navigate to="/dashboard" replace />;
+  if (!userRole || !allowedRoles.includes(userRole)) {
+    // Redirect to appropriate dashboard based on role
+    return <Navigate to={authService.getDashboardPath()} replace />;
   }
+
   return <>{children}</>;
 };
 
@@ -27,54 +30,25 @@ function App() {
     <Router>
       <Routes>
         {/* Public Routes */}
-        <Route
-          path="/"
-          element={
-            <PublicRoute>
-              <LandingPage />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
-          }
-        />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-        {/* Protected Routes */}
+        {/* Protected Role-based Routes */}
         <Route
-          path="/dashboard"
+          path="/employee-dashboard"
           element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['employee']}>
+              <EmployeeDashboard />
+            </RoleBasedRoute>
           }
         />
         <Route
-          path="/jobs"
+          path="/employer-dashboard"
           element={
-            <ProtectedRoute>
-              <div>Jobs Page (Coming Soon)</div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <div>Profile Page (Coming Soon)</div>
-            </ProtectedRoute>
+            <RoleBasedRoute allowedRoles={['employer']}>
+              <EmployerDashboard />
+            </RoleBasedRoute>
           }
         />
 

@@ -18,7 +18,7 @@ export default function Login() {
 
     try {
       await authService.login(credentials);
-      navigate('/dashboard');
+      navigate(authService.getDashboardPath());
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login failed. Please try again.');
     } finally {

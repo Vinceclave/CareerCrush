@@ -1,15 +1,24 @@
 import axios from 'axios';
 import { authService } from './authService';
 
-const API_URL = 'http://localhost:3000/api';
+// Use Vite environment variable for API URL
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 export interface BaseProfile {
-  id?: number;
-  user_id: number;
+  id: string;
+  user_id: string;
   first_name: string;
   last_name: string;
+  email: string;
   phone?: string;
-  avatar_url?: string;
+  location?: string;
+  bio?: string;
+  skills?: string[];
+  experience?: string[];
+  education?: string[];
+  resume_url?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface EmployeeProfile extends BaseProfile {
@@ -38,45 +47,68 @@ export interface EmployerProfile extends BaseProfile {
 
 export type Profile = EmployeeProfile | EmployerProfile;
 
-class ProfileService {
-  private getAuthHeader() {
-    const token = authService.getToken();
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }
+export interface Resume {
+  id: string;
+  employee_id: string;
+  file_url: string;
+  upload_timestamp: string;
+}
 
-  async getProfile(): Promise<Profile> {
+export const profileService = {
+  async getProfile(): Promise<BaseProfile> {
     const response = await axios.get(`${API_URL}/profile`, {
-      headers: this.getAuthHeader()
+      headers: {
+        Authorization: `Bearer ${authService.getToken()}`
+      }
     });
     return response.data;
-  }
+  },
 
-  async createProfile(profileData: Partial<Profile>): Promise<number> {
+  async createProfile(profileData: Partial<BaseProfile>): Promise<BaseProfile> {
     const response = await axios.post(`${API_URL}/profile`, profileData, {
-      headers: this.getAuthHeader()
+      headers: {
+        Authorization: `Bearer ${authService.getToken()}`
+      }
     });
-    return response.data.profileId;
-  }
+    return response.data;
+  },
 
-  async updateProfile(updates: Partial<Profile>): Promise<void> {
-    await axios.put(`${API_URL}/profile`, updates, {
-      headers: this.getAuthHeader()
+  async updateProfile(profileData: Partial<BaseProfile>): Promise<BaseProfile> {
+    const response = await axios.put(`${API_URL}/profile`, profileData, {
+      headers: {
+        Authorization: `Bearer ${authService.getToken()}`
+      }
     });
-  }
+    return response.data;
+  },
 
-  async deleteProfile(): Promise<void> {
-    await axios.delete(`${API_URL}/profile`, {
-      headers: this.getAuthHeader()
+  async uploadResume(file: File): Promise<Resume> {
+    const formData = new FormData();
+    formData.append('resume', file);
+
+    const response = await axios.post(`${API_URL}/profile/resume`, formData, {
+      headers: {
+        Authorization: `Bearer ${authService.getToken()}`,
+        'Content-Type': 'multipart/form-data'
+      }
     });
-  }
+    return response.data;
+  },
+
+  async getResumes(): Promise<Resume[]> {
+    const response = await axios.get(`${API_URL}/profile/resume`, {
+      headers: {
+        Authorization: `Bearer ${authService.getToken()}`
+      }
+    });
+    return response.data;
+  },
 
   isEmployeeProfile(profile: Profile): profile is EmployeeProfile {
     return 'skills' in profile;
-  }
+  },
 
   isEmployerProfile(profile: Profile): profile is EmployerProfile {
     return 'company_name' in profile;
   }
-}
-
-export const profileService = new ProfileService(); 
+}; 

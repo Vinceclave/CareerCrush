@@ -24,4 +24,4 @@ async def analyze_resume(data: ResumeData):
     resume_embedding = model.encode(data.text, convert_to_tensor=True)
     job_embedding = model.encode(data.job, convert_to_tensor=True)
     score = util.cos_sim(job_embedding, resume_embedding).item()
-    return {"similarity": round(score, 4)} 
+    return {"similarity": round(score, 4)}

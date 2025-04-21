@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 import { initializeDatabase } from './config/database';
 import authRoutes from './routes/auth';
 import profileRoutes from './routes/profile';
+import employerRoutes from './routes/employer';
 import { errorHandler } from './middleware/errorHandler';
 import path from 'path';
 import { AutoAnalysisService } from './services/AutoAnalysisService';
@@ -42,6 +43,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../../client/uploads'))
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/employer', employerRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

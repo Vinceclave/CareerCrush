@@ -1,10 +1,31 @@
 import { User, UserModel } from '../models/User';
+import { ProfileService } from './ProfileService';
 import bcrypt from 'bcrypt';
 
 export class UserService {
   static async createUser(email: string, password: string, role: 'employee' | 'employer'): Promise<number> {
     const passwordHash = await bcrypt.hash(password, 10);
-    return UserModel.create({ email, password_hash: passwordHash, role });
+    const userId = await UserModel.create({ email, password_hash: passwordHash, role });
+
+    // Create a default profile based on the user's role
+    const defaultProfile = role === 'employee' 
+      ? {
+          first_name: '',
+          last_name: '',
+          skills: [],
+          preferred_job_type: 'full-time',
+          preferred_work_environment: 'remote'
+        }
+      : {
+          first_name: '',
+          last_name: '',
+          company_name: '',
+          industry: ''
+        };
+
+    await ProfileService.createProfile(userId, defaultProfile);
+
+    return userId;
   }
 
   static async getUserById(id: number): Promise<User | null> {

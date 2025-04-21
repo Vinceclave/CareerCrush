@@ -10,6 +10,7 @@ import EmployeeLayout from './components/layout/EmployeeLayout';
 import EmployerLayout from './components/layout/EmployerLayout';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import { EmployerDashboard } from './pages/EmployerDashboard';
 
 const PrivateRoute: React.FC<{ 
   children: React.ReactNode;
@@ -92,7 +93,7 @@ const App: React.FC = () => {
                     <EmployerLayout>
                       <div className="container mx-auto px-4 py-8">
                         <Routes>
-                          <Route path="dashboard" element={<div className="bg-white rounded-lg shadow p-6">Employer Dashboard</div>} />
+                          <Route path="dashboard" element={<EmployerDashboard />} />
                           <Route path="profile" element={<EmployerProfileForm />} />
                           <Route path="jobs" element={<div className="bg-white rounded-lg shadow p-6">Jobs</div>} />
                           <Route path="candidates" element={<div className="bg-white rounded-lg shadow p-6">Candidates</div>} />

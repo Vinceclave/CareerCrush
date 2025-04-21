@@ -108,34 +108,152 @@ export class ResumeModel {
     // Convert to lowercase
     text = text.toLowerCase();
     
+    // Fix spacing issues in the text
+    text = text.replace(/,/g, ' '); // Replace commas with spaces
+    text = text.replace(/\s+/g, ' '); // Replace multiple spaces with single space
+    
     // Remove special characters but keep important ones
     text = text.replace(/[^\w\s.,;:!?()\-/]/g, ' ');
     
+    // Add spaces between words that are stuck together
+    text = text.replace(/([a-z])([A-Z])/g, '$1 $2');
+    
     // Remove extra whitespace
-    text = text.replace(/\s+/g, ' ').trim();
+    text = text.trim();
     
     return text;
   }
 
   private static extractKeywords(text: string): string[] {
     // Common words to exclude
-    const stopWords = new Set(['the', 'and', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by']);
+    const stopWords = new Set([
+      'the', 'and', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+      'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had',
+      'do', 'does', 'did', 'will', 'would', 'shall', 'should', 'may', 'might',
+      'must', 'can', 'could'
+    ]);
     
     // Extract words and filter out stop words
     const words = text.split(/\s+/)
       .filter(word => word.length > 2 && !stopWords.has(word));
     
-    return [...new Set(words)]; // Remove duplicates
+    // Add common variations of words
+    const variations = words.flatMap(word => {
+      const variants = [word];
+      if (word.endsWith('ing')) {
+        variants.push(word.slice(0, -3));
+      }
+      if (word.endsWith('ed')) {
+        variants.push(word.slice(0, -2));
+      }
+      if (word.endsWith('s')) {
+        variants.push(word.slice(0, -1));
+      }
+      return variants;
+    });
+    
+    return [...new Set(variations)]; // Remove duplicates
   }
 
   private static calculateKeywordMatch(resumeKeywords: string[], jobKeywords: string[]): number {
-    const matchingKeywords = resumeKeywords.filter(keyword => 
-      jobKeywords.some(jobKeyword => 
-        jobKeyword.includes(keyword) || keyword.includes(jobKeyword)
-      )
+    // Weight different types of keywords differently
+    const skillWeight = 1.0;
+    const experienceWeight = 1.2;
+    const educationWeight = 0.8;
+    
+    // Categorize keywords
+    const skillKeywords = jobKeywords.filter(k => 
+      k.toLowerCase().includes('skill') || 
+      k.toLowerCase().includes('ability') ||
+      k.toLowerCase().includes('proficient') ||
+      k.toLowerCase().includes('expertise')
     );
     
-    return matchingKeywords.length / jobKeywords.length;
+    const experienceKeywords = jobKeywords.filter(k => 
+      k.toLowerCase().includes('experience') || 
+      k.toLowerCase().includes('years') ||
+      k.toLowerCase().includes('worked') ||
+      k.toLowerCase().includes('developed')
+    );
+    
+    const educationKeywords = jobKeywords.filter(k => 
+      k.toLowerCase().includes('education') || 
+      k.toLowerCase().includes('degree') ||
+      k.toLowerCase().includes('certification') ||
+      k.toLowerCase().includes('training')
+    );
+    
+    // Calculate matches for each category with partial matching
+    const skillMatches = resumeKeywords.filter(keyword => 
+      skillKeywords.some(jobKeyword => 
+        jobKeyword.toLowerCase().includes(keyword.toLowerCase()) || 
+        keyword.toLowerCase().includes(jobKeyword.toLowerCase()) ||
+        this.calculateStringSimilarity(keyword, jobKeyword) > 0.7
+      )
+    ).length;
+    
+    const experienceMatches = resumeKeywords.filter(keyword => 
+      experienceKeywords.some(jobKeyword => 
+        jobKeyword.toLowerCase().includes(keyword.toLowerCase()) || 
+        keyword.toLowerCase().includes(jobKeyword.toLowerCase()) ||
+        this.calculateStringSimilarity(keyword, jobKeyword) > 0.7
+      )
+    ).length;
+    
+    const educationMatches = resumeKeywords.filter(keyword => 
+      educationKeywords.some(jobKeyword => 
+        jobKeyword.toLowerCase().includes(keyword.toLowerCase()) || 
+        keyword.toLowerCase().includes(jobKeyword.toLowerCase()) ||
+        this.calculateStringSimilarity(keyword, jobKeyword) > 0.7
+      )
+    ).length;
+    
+    // Calculate weighted scores with a minimum threshold
+    const totalKeywords = Math.max(1, jobKeywords.length);
+    const weightedScore = (
+      (skillMatches * skillWeight) +
+      (experienceMatches * experienceWeight) +
+      (educationMatches * educationWeight)
+    ) / (totalKeywords * (skillWeight + experienceWeight + educationWeight) / 3);
+    
+    // Ensure a minimum score for candidates with relevant keywords
+    return Math.max(0.3, weightedScore);
+  }
+
+  private static calculateStringSimilarity(str1: string, str2: string): number {
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1.length > str2.length ? str2 : str1;
+    const longerLength = longer.length;
+    
+    if (longerLength === 0) return 1.0;
+    
+    return (longerLength - this.editDistance(longer, shorter)) / longerLength;
+  }
+
+  private static editDistance(s1: string, s2: string): number {
+    s1 = s1.toLowerCase();
+    s2 = s2.toLowerCase();
+
+    const costs = [];
+    for (let i = 0; i <= s1.length; i++) {
+      let lastValue = i;
+      for (let j = 0; j <= s2.length; j++) {
+        if (i === 0) {
+          costs[j] = j;
+        } else {
+          if (j > 0) {
+            let newValue = costs[j - 1];
+            if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
+              newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+            }
+            costs[j - 1] = lastValue;
+            lastValue = newValue;
+          }
+        }
+      }
+      if (i > 0) costs[s2.length] = lastValue;
+    }
+    return costs[s2.length];
   }
 
   static async analyzeResume(resumeId: number, jobDescription: string): Promise<AIResumeScore> {
@@ -149,7 +267,7 @@ export class ResumeModel {
     const processedResumeText = this.preprocessText(resumeText);
     const processedJobText = this.preprocessText(jobDescription);
 
-    // Extract keywords
+    // Extract keywords with improved extraction
     const resumeKeywords = this.extractKeywords(processedResumeText);
     const jobKeywords = this.extractKeywords(processedJobText);
 
@@ -158,16 +276,16 @@ export class ResumeModel {
     const resumeEmbedding = await model(processedResumeText, { pooling: 'mean', normalize: true });
     const jobEmbedding = await model(processedJobText, { pooling: 'mean', normalize: true });
     
-    // Calculate cosine similarity
-    const embeddingScore = this.calculateCosineSimilarity(resumeEmbedding.data, jobEmbedding.data);
+    // Calculate cosine similarity with minimum threshold
+    const embeddingScore = Math.max(0.3, this.calculateCosineSimilarity(resumeEmbedding.data, jobEmbedding.data));
     
-    // Calculate keyword match score
+    // Calculate keyword match score with improved matching
     const keywordScore = this.calculateKeywordMatch(resumeKeywords, jobKeywords);
     
-    // Combine scores with weights
-    const finalScore = (embeddingScore * 0.7) + (keywordScore * 0.3);
+    // Combine scores with adjusted weights
+    const finalScore = (embeddingScore * 0.6) + (keywordScore * 0.4);
     
-    // Generate detailed analysis
+    // Generate analysis
     const analysis = this.generateAnalysis(finalScore, resumeText, jobDescription, resumeKeywords, jobKeywords);
 
     // Delete any existing score for this resume
@@ -209,28 +327,41 @@ export class ResumeModel {
     jobKeywords: string[]
   ): string {
     const scorePercentage = (score * 100).toFixed(2);
-    let analysis = `Resume scored ${scorePercentage}% match with the job description.\n\n`;
+    let analysis = `Candidate Profile:\n\n`;
     
-    // Add keyword analysis
-    const matchingKeywords = resumeKeywords.filter(keyword => 
-      jobKeywords.some(jobKeyword => 
-        jobKeyword.includes(keyword) || keyword.includes(jobKeyword)
-      )
+    // Extract basic information
+    const nameMatch = resumeText.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/);
+    const emailMatch = resumeText.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
+    const phoneMatch = resumeText.match(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/);
+    
+    if (nameMatch) analysis += `Name: ${nameMatch[0]}\n`;
+    if (emailMatch) analysis += `Email: ${emailMatch[0]}\n`;
+    if (phoneMatch) analysis += `Phone: ${phoneMatch[0]}\n`;
+    
+    // Add skills and experience summary
+    analysis += `\nSkills and Experience:\n`;
+    const skills = resumeKeywords.filter(k => 
+      k.toLowerCase().includes('skill') || 
+      k.toLowerCase().includes('experience') ||
+      k.toLowerCase().includes('technology')
     );
     
-    analysis += `Matching Keywords: ${matchingKeywords.join(', ')}\n\n`;
-    
-    // Add detailed analysis based on score
-    if (score >= 0.8) {
-      analysis += "Excellent match! The resume strongly aligns with the job requirements and contains most of the required keywords.";
-    } else if (score >= 0.6) {
-      analysis += "Good match. The resume meets most of the job requirements and contains many relevant keywords.";
-    } else if (score >= 0.4) {
-      analysis += "Moderate match. Some skills and experience align with the job requirements, but could be improved with more relevant keywords.";
-    } else {
-      analysis += "Limited match. The resume may need significant updates to better align with the job requirements and include more relevant keywords.";
+    if (skills.length > 0) {
+      analysis += skills.slice(0, 5).join(', ') + '\n';
     }
-
+    
+    // Add matching score and analysis
+    analysis += `\nMatch Score: ${scorePercentage}%\n`;
+    if (score >= 0.8) {
+      analysis += "Excellent match with job requirements.";
+    } else if (score >= 0.6) {
+      analysis += "Good match with job requirements.";
+    } else if (score >= 0.4) {
+      analysis += "Moderate match with job requirements.";
+    } else {
+      analysis += "Basic match with job requirements.";
+    }
+    
     return analysis;
   }
 

@@ -8,6 +8,7 @@ import authRoutes from './routes/auth';
 import profileRoutes from './routes/profile';
 import { errorHandler } from './middleware/errorHandler';
 import path from 'path';
+import { AutoAnalysisService } from './services/AutoAnalysisService';
 
 // Load environment variables
 dotenv.config();
@@ -46,6 +47,10 @@ app.use('/api/profile', profileRoutes);
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
+
+// Initialize auto-analysis service
+const autoAnalysisService = AutoAnalysisService.getInstance();
+autoAnalysisService.start();
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {

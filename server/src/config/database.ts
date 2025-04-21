@@ -1,6 +1,5 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
-import { RowDataPacket } from 'mysql2';
 
 dotenv.config();
 
@@ -45,9 +44,10 @@ const createTables = async () => {
       )
     `);
 
-    // Profiles table
+    // Drop and recreate profiles table to ensure correct schema
+    await connection.execute('DROP TABLE IF EXISTS profiles');
     await connection.execute(`
-      CREATE TABLE IF NOT EXISTS profiles (
+      CREATE TABLE profiles (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         first_name VARCHAR(255) NOT NULL,
@@ -55,7 +55,7 @@ const createTables = async () => {
         phone VARCHAR(20),
         avatar_url VARCHAR(255),
         title VARCHAR(255),
-        skills TEXT,
+        skills JSON,
         experience_years INT,
         education TEXT,
         resume_url VARCHAR(255),
@@ -78,24 +78,11 @@ const createTables = async () => {
       )
     `);
 
-    // Swipe decisions table
-    await connection.execute(`
-      CREATE TABLE IF NOT EXISTS swipe_decisions (
-        employer_id INT,
-        employee_id INT,
-        decision ENUM('accept', 'decline') NOT NULL,
-        decision_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (employer_id, employee_id),
-        FOREIGN KEY (employer_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE
-      )
-    `);
-
     // Resumes table
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS resumes (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        employee_id INT,
+        employee_id INT NOT NULL,
         file_url VARCHAR(255) NOT NULL,
         upload_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE CASCADE
@@ -105,11 +92,11 @@ const createTables = async () => {
     // AI resume scores table
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS ai_resume_scores (
-        resume_id INT,
-        score INT NOT NULL,
-        analysis TEXT,
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        resume_id INT NOT NULL,
+        score FLOAT NOT NULL,
+        analysis TEXT NOT NULL,
         scored_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (resume_id),
         FOREIGN KEY (resume_id) REFERENCES resumes(id) ON DELETE CASCADE
       )
     `);

@@ -5,6 +5,7 @@ import { authenticateToken } from '../middleware/auth';
 import multer from 'multer';
 import path from 'path';
 import { Request, Response } from 'express';
+import { ResumeModel } from '../models/Resume';
 
 const router = express.Router();
 
@@ -153,6 +154,39 @@ router.delete('/', authenticateToken, async (req, res) => {
     res.json({ message: 'Profile deleted successfully' });
   } catch (error) {
     console.error('Delete profile error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Analyze resume
+router.post('/resume/analyze', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { resume_id, job_description } = req.body;
+    if (!resume_id || !job_description) {
+      return res.status(400).json({ error: 'Resume ID and job description are required' });
+    }
+
+    const score = await ResumeModel.analyzeResume(resume_id, job_description);
+    res.json(score);
+  } catch (error: any) {
+    console.error('Analyze resume error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get resume score
+router.get('/resume/:id/score', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const resumeId = parseInt(req.params.id);
+    const score = await ResumeModel.getResumeScore(resumeId);
+    
+    if (!score) {
+      return res.status(404).json({ error: 'Score not found' });
+    }
+
+    res.json(score);
+  } catch (error: any) {
+    console.error('Get resume score error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

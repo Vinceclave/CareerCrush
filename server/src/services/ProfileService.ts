@@ -79,9 +79,15 @@ export class ProfileService {
       throw new Error('Invalid work environment');
     }
 
-    if (profile.experience_years && 
-        (typeof profile.experience_years !== 'number' || profile.experience_years < 0)) {
-      throw new Error('Invalid experience years');
+    if (profile.experience_years !== undefined) {
+      // Convert to number if it's a string
+      const years = typeof profile.experience_years === 'string' 
+        ? parseFloat(profile.experience_years)
+        : profile.experience_years;
+
+      if (isNaN(years) || years < 0) {
+        throw new Error('Experience years must be a non-negative number');
+      }
     }
   }
 
